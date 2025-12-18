@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 export default function App() {
-  const STORAGE_KEY = "todo_list_v2"; // v2: add category/priority/dueDate/sort
+  const STORAGE_KEY = "todo_list_v2"; // v2: add category/priority/dueDate/search/sort
 
   // ======= UI State (controls) =======
+  const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [sortBy, setSortBy] = useState("created_desc"); // created_desc | due_asc | priority_desc
 
@@ -25,14 +26,8 @@ export default function App() {
       title: String(raw.title ?? "").trim(),
       description: String(raw.description ?? "").trim(),
       completed: Boolean(raw.completed ?? false),
-      category:
-        raw.category === "Work" || raw.category === "Study" || raw.category === "Life"
-          ? raw.category
-          : "Life",
-      priority:
-        raw.priority === "Low" || raw.priority === "Medium" || raw.priority === "High"
-          ? raw.priority
-          : "Medium",
+      category: raw.category === "Work" || raw.category === "Study" || raw.category === "Life" ? raw.category : "Life",
+      priority: raw.priority === "Low" || raw.priority === "Medium" || raw.priority === "High" ? raw.priority : "Medium",
       dueDate: typeof raw.dueDate === "string" ? raw.dueDate : "",
       createdAt: typeof raw.createdAt === "number" ? raw.createdAt : Date.now(),
     };
@@ -102,13 +97,23 @@ export default function App() {
     setTodos((prev) => prev.filter((t) => t.id !== id));
   }
 
-  // ======= Derived list (Filter + Sort) =======
+  // ======= Derived list (Search + Filter + Sort) =======
   const visibleTodos = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
     let list = todos;
 
     // Filter by category
     if (categoryFilter !== "All") {
       list = list.filter((t) => t.category === categoryFilter);
+    }
+
+    // Search (advanced challenge)
+    if (q) {
+      list = list.filter((t) => {
+        const hay = `${t.title} ${t.description}`.toLowerCase();
+        return hay.includes(q);
+      });
     }
 
     // Sort
@@ -137,23 +142,29 @@ export default function App() {
     }
 
     return sorted;
-  }, [todos, categoryFilter, sortBy]);
+  }, [todos, search, categoryFilter, sortBy]);
 
   // ======= UI =======
   return (
     <div style={{ padding: 24, fontFamily: "system-ui", maxWidth: 820 }}>
       <h1 style={{ marginBottom: 10 }}>TODO List</h1>
 
-      {/* Controls: Filter + Sort */}
+      {/* Controls: Search + Filter + Sort */}
       <div
         style={{
           display: "grid",
           gap: 8,
-          gridTemplateColumns: "200px 260px",
+          gridTemplateColumns: "1fr 160px 200px",
           alignItems: "center",
           marginBottom: 14,
         }}
       >
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search (title / description)..."
+        />
+
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
@@ -228,7 +239,7 @@ export default function App() {
         </h2>
 
         {visibleTodos.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>No tasks in this view.</p>
+          <p style={{ opacity: 0.7 }}>No tasks match current filters.</p>
         ) : (
           <ul style={{ paddingLeft: 18 }}>
             {visibleTodos.map((t) => (
