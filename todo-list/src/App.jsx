@@ -1,10 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function App() {
+  const STORAGE_KEY = "todo_list_v1";
+
   // todos: { id, title, description, completed }
   const [todos, setTodos] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+
+  // 1) load on first render
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data)) setTodos(data);
+    } catch {
+      // if corrupted, ignore and start fresh
+    }
+  }, []);
+
+  // 2) save whenever todos changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }, [todos]);
 
   function handleAddTodo(e) {
     e.preventDefault();
